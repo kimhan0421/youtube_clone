@@ -3,4 +3,4 @@
 </h1>
 
 - 사용 언어 : React / Node.js
-- Theory
+- [Theory](https://github.com/kimhan0421/youtube_clone/blob/master/Theory.md)
