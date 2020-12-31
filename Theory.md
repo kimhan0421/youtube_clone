@@ -197,3 +197,20 @@ const CategoryOption = [
   ))}
 </select>
 ```
+
+<p align="center">
+<strong>prettier적용</strong><br>
+</p>
+
+- 설치
+
+```
+npm i prettier eslint-config-prettier eslint-plugin-prettier -D
+
+```
+
+- client 적용
+
+```
+yarn prettier --write src/**
+```
