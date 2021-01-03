@@ -214,3 +214,116 @@ npm i prettier eslint-config-prettier eslint-plugin-prettier -D
 ```
 yarn prettier --write src/**
 ```
+
+<p align="center">
+<strong>3. Multer로 서버에 비디오 저장하기</strong><br>
+</p>
+
+0. OnDrop func만들기
+
+_VideoUploadPage.js_
+
+```javascript
+const onDrop = (file) => {
+  let formData = new FormData();
+  const config = {
+    header: { 'content-type': multipart / form - data },
+  };
+  formData.append('file', files[0]);
+
+  Axios.post('/api/video/uploadfiles', formData, config).then((res) => {
+    if (res.data.success) {
+    } else {
+      alert('비디오 업로드를 실패했습니다.');
+    }
+  });
+};
+```
+
+=> multiple={false} ) 한번에 파일 하나만 올릴 것<br>
+=> maxSize={100000} ) 사이즈 지정<br>
+=> file 파라미터 ) 파일의 정보들을 파라미터로 받아옴
+
+_폴더)server - routes - video.js파일 생성_
+
+```javascript
+router.post('/uploadfiles', (req, res) => {
+  //비디오를 서버에 저장
+});
+```
+
+=> url입력 + 콜백(file보냄\_req)
+
+_index.js_
+
+```javascript
+app.use('/api/video', require('./routes/video'));
+```
+
+=> video라우트로 온다(video.js)
+
+1. 노드서버에 파일을 저장하기 위해 Dependency먼저 다운
+   => 비디오를 서버에 저장한다.
+
+   ```
+   npm install multer --save
+   ```
+
+_server ) video.js_
+
+```javascript
+const multer = require('multer');
+```
+
+=> multer설치 후 불러옴
+
+```javascript
+var storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}_${file.originalname}`);
+  },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    if (ext !== '.mp4') {
+      return cb(res.status(400).end('only jpg, png, mp4 is allowed'), false);
+    }
+    cb(null, true);
+  },
+});
+
+var upload = multer({ storage: storage }).single('file');
+```
+
+=> client에서 파일을 보내면, storage를 먼저타고,<br>
+때문에 multer에 storage에 넣고 / 파일은 single로<br>
+=> destination ) 파일을 받아오면 어디에 저장할 지 지정<br>
+=> 최상단에 upload폴더 생성<br>
+=> filename ) 파일 저장시 어떤 이름으로 저장할지<br>
+=> fileFilter ) 파일 형식 ex. mp4만 받겠다
+
+```javascript
+router.post('/uploadfiles', (req, res) => {
+  //비디오를 서버에 저장
+  upload(req, res, (err) => {
+    if (err) {
+      return res.json({ success: false, err });
+    }
+    return res.json({
+      success: true,
+      url: res.req.file.path,
+      fileName: res.req.fileName,
+    });
+  });
+});
+```
+
+=> 파일을 저장
+
+2. 비디오 파일을 서버로 보내기
+
+3. 받은 비디오 파일을 서버에서 저장
+
+4. 파일 저장 경로를 클라이언트로 전달

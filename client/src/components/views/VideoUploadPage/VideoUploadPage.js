@@ -50,7 +50,7 @@ function VideoUploadPage() {
       </div>
       <Form>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Dropzone onDrop multiple maxSize>
+          <Dropzone>
             {({ getRootProps, getInputProps }) => (
               <div
                 style={{
