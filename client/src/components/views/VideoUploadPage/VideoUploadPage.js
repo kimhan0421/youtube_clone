@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Dropzone from 'react-dropzone';
 import { Typography, Form, Input, Icon } from 'antd';
 import { PlayCircleOutlined } from '@ant-design/icons';
+import axios from 'axios';
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -40,6 +41,26 @@ function VideoUploadPage() {
   const handleChangesetCategory = (event) => {
     setCategory(event.currentTarget.value);
   };
+
+  const onDrop = (files) => {
+
+    let formData = new FormData();
+    const config = {
+      header: { 'content-type': 'multipart/form-data' }
+    }
+    console.log(files)
+    formData.append("file", files[0])
+
+    axios.post('/api/video/uploadfiles', formData, config)
+      .then(response => {
+        if (response.data.success) {
+          console.log(response.data)
+        } else {
+          alert('failed to save the video in server')
+        }
+      })
+  }
+
   return (
     <div style={{ maxWidth: '700px', margin: '2rem auto' }}>
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -50,7 +71,10 @@ function VideoUploadPage() {
       </div>
       <Form>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Dropzone>
+          <Dropzone
+            onDrop={onDrop}
+            multiple={false}
+            maxSize={800000000}>
             {({ getRootProps, getInputProps }) => (
               <div
                 style={{
