@@ -70,7 +70,7 @@ _server - config - key.js_
   => add new Database user -> usename과 password입력 후 -> add user
 
   _server - config - dev.js_
-  => <usename>과 <password>입력
+  => usename과 password입력
 
 <p align="center">
 <strong>2. upload video Form</strong><br>
@@ -87,7 +87,7 @@ _package.json_
   },
 ```
 
-=> npm run dev
+=> npm run dev<br>
 => dev ) concurrently 라이브러리를 이용해, backend의 서버가동 후 frontend의 client를 가동 할 수 있도록 함
 
 1. _업로드 페이지 만들기_
@@ -111,8 +111,8 @@ _App.js_
 <Route exact path="/video/upload" component={Auth(VideoUploadPage, true)} /> //추가
 ```
 
-=> component={Auth(LandingPage, null)} ) null경우 아무나 진입 가능
-=> true일 경우 로그인 한 사람만 진입 가능
+=> component={Auth(LandingPage, null)} ) null경우 아무나 진입 가능<br>
+=> true일 경우 로그인 한 사람만 진입 가능<br>
 => false일 경우 로그인 하면 진입 불가
 
 3. _헤더 탭 만들기_
@@ -145,7 +145,7 @@ if (user.userData && !user.userData.isAuth) {
 }
 ```
 
-=> 로그인 하면 else로 return
+=> 로그인 하면 else로 return<br>
 => 로그인 안하면 if문으로 return
 
 4. _from 템플릿 만들기_
@@ -277,6 +277,12 @@ const multer = require('multer');
 
 => multer설치 후 불러옴
 
+2. 비디오 파일을 서버로 보내기
+
+3. 받은 비디오 파일을 서버에서 저장
+
+4. 파일 저장 경로를 클라이언트로 전달
+
 ```javascript
 var storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -322,8 +328,135 @@ router.post('/uploadfiles', (req, res) => {
 
 => 파일을 저장
 
-2. 비디오 파일을 서버로 보내기
+<p align="center">
+<strong>4. ffmpeg로 비디오 썸네일 생성</strong><br>
+</p>
 
-3. 받은 비디오 파일을 서버에서 저장
+1. <strong>썸네일 생성을 위한 Dependency다운</strong>
 
-4. 파일 저장 경로를 클라이언트로 전달
+> 맥의 경우
+
+```
+brew install ffmpeg
+
+```
+
+- 설치
+
+```
+npm install fluent-ffmpeg --save
+```
+
+_VideoUploadPage.js_
+
+```
+axios.post('/api/video/thumbnail', variable)
+```
+
+2. <strong>서버에 저장된 비디오를 이용한 썸네일 생성</strong>
+3. <strong>생성된 썸네일을 서버에 저장</strong>
+4. <strong>썸네일 이미지 파일 경로 정보를 클라이언트에 보내기</strong>
+
+- 설명)
+  axios.post('/api/video/uploadfiles', formData, config) 에<br>
+  server에서 data를 성공적으로 받아오면<br>
+  axios.post('/api/video/thumbnail', variable)를 하도록 추가<br>
+
+=> variable변수 ) server에서 data를 성공적으로 받아오면, url과 fileName을 받아옴
+
+_server ) routes ) video.js_
+
+```
+var ffmpeg = require("fluent-ffmpeg")
+```
+
+=> 다운받은 ffmpeg를 가져옴
+
+```javascript
+ffmpeg(req.body.filePath)
+  .on('filenames', function (filenames) {
+    console.log('Will generate ' + filenames.join(', '));
+    thumbsFilePath = 'uploads/thumbnails/' + filenames[0];
+  })
+  .on('end', function () {
+    console.log('Screenshots taken');
+    return res.json({
+      success: true,
+      thumbsFilePath: thumbsFilePath,
+      fileDuration: fileDuration,
+    });
+  })
+  .screenshots({
+    // Will take screens at 20%, 40%, 60% and 80% of the video
+    count: 3,
+    folder: 'uploads/thumbnails',
+    size: '320x240',
+    // %b input basename ( filename w/o extension )
+    filename: 'thumbnail-%b.png',
+  });
+```
+
+=> client에서 받아온 파일 저장 경로<br>
+=> 파일 이름 새로 생성<br>
+=> end ) 비디오 생성하고 뭘 할건지<br>
+=> error) 에러 나면 어떻게 할건지<br>
+=> 옵션- 스크린샷) 3개의 썸네일 , uploads폴더 안에 thumbnails폴더안에 생성(thumbnails폴더 생성), 사이즈 지정, 파일이름 지정
+
+```javascript
+let thumbsFilePath = '';
+let fileDuration = '';
+
+//비디오 정보
+ffmpeg.ffprobe(req.body.filePath, function (err, metadata) {
+  console.dir(metadata);
+  console.log(metadata.format.duration);
+
+  fileDuration = metadata.format.duration;
+});
+```
+
+let thumbsFilePath = "";<br>
+let fileDuration = "";<br>
+=> 변수 미리 지정<br>
+=> ffprobe는 ffmpeg다운 받을 때 같이 다운<br>
+=> fileDuration ) 비디오의 러닝타임 가져옴
+
+5. <strong>썸네일 이미지를 화면에 표시</strong>
+
+_VideoUploadPage.js_
+
+```javascript
+const [FilePath, setFilePath] = useState('');
+const [Duration, setDuration] = useState('');
+const [Thumbnail, setThumbnail] = useState('');
+```
+
+=> 비디오 정보를 state에 저장
+
+```javascript
+axios.post('/api/video/thumbnail', variable).then((response) => {
+  if (response.data.success) {
+    setDuration(response.data.fileDuration);
+    setThumbnail(response.data.thumbsFilePath);
+  } else {
+    alert('썸네일 생성에 실패했습니다.');
+  }
+});
+```
+
+=> server에서 data를 받아오는 것이 성공하면<br>
+setDuration과 setThumbnail 정보 업데이트
+
+```javascript
+{
+  Thumbnail !== '' && (
+    <div>
+      <img src={`http://localhost:5000/${Thumbnail}`} alt="haha" />
+    </div>
+  );
+}
+```
+
+=> 썸네일 path ) 5000 prot를 사용하고 있으니 지정해줘야 함<br>
+=> Thumbnail sate) 빈 string이기 때문에 초기값은 그림이 안뜬다<br>
+따라서, 썸네일이 있을경우에만 썸네일이 보이도록!
