@@ -460,3 +460,153 @@ setDuration과 setThumbnail 정보 업데이트
 => 썸네일 path ) 5000 prot를 사용하고 있으니 지정해줘야 함<br>
 => Thumbnail sate) 빈 string이기 때문에 초기값은 그림이 안뜬다<br>
 따라서, 썸네일이 있을경우에만 썸네일이 보이도록!
+
+<p align="center">
+<strong>5. 비디오 업로드 하기</strong><br>
+</p>
+
+- RDBMS vs MongoDB 의 Database
+  => tables = collections
+  => rows = documents
+  => columns = fields
+
+1. 비디오 Collection 만들기
+
+- fields
+  => writer, title, description, privacy, filePath, category, views, duration, thumbnail
+
+_server - models - file)Video.js 생성_
+
+```javascript
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+
+const videoSchema = mongoose.Schema({
+  writer: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+  },
+});
+
+const Video = mongoose.model('Video', videoSchema);
+
+module.exports = { Video };
+```
+
+=> videoSchema의 writer )
+ID로 지정해주면,
+다른 Schema의 모든 정보들을 불러올 수 있음
+ref로 user를 지정해주면, 불러올 model이 userSchema인 것을 알 수 있음
+=> { timestamps: true } )
+만든날과 업데이트 한 날을 표시할 수 있다.
+
+2. onSubmit Function 만들기
+
+_VideoUploadPage.js_
+
+```javascript
+
+<Form onSubmit={onSubmit}></Form>
+<Button type='primary' size='large' onClick={onSubmit}>
+  Submit
+</Button>
+```
+
+=> onSubmit 추가
+
+```javascript
+const onSubmit = (e) => {
+  e.preventDefault();
+  const variables = {
+    writer: user.userData._id,
+    title: VideoTitle,
+    description: Description,
+    privacy: Private,
+    filePath: FilePath,
+    category: Category,
+    duration: Duration,
+    thumbnail: Thumbnail,
+  };
+  axios.post('/api/video/uploadVideo', variables).then((response) => {
+    if (response.data.success) {
+      alert('video Uploaded Successfully');
+      props.history.push('/');
+    } else {
+      alert('비디오 업로드에 실패 했습니다.');
+    }
+  });
+};
+```
+
+=> onSubmit 함수 추가
+=> 리덕스 스토어에서 가져옴
+
+> 가져오기 ) 리덕스 훅을 사용
+
+```javascript
+import { useSelector } from 'react-redux';
+
+function VideoUploadPage() {
+  const user = useSelector((state) => state.user);
+}
+```
+
+3. 요청할 데이터들을 서버로 보낸다
+
+- axios.post('/api/video/uploadVideo', variables)
+  => url만들기
+
+_server - routes - video.js_
+
+```javascript
+router.post('/uploadvdieo', (req, res) => {
+  //비디오 정보들을 저장한다.
+  new Video(req.body);
+});
+```
+
+=> req.body) 모든 정보들을 담음
+
+> 모든 정보들) client에서 정의했던 정보들
+
+```javascript
+const variables = {
+  writer: user.userData._id,
+  title: VideoTitle,
+  description: Description,
+  privacy: Private,
+  filePath: FilePath,
+  category: Category,
+  duration: Duration,
+  thumbnail: Thumbnail,
+};
+```
+
+4. 보낸 데이터들을 MongoDB에 저장한다.
+
+```
+video.save()
+```
+
+=> MongoDB에 저장
+
+```javascript
+router.post('/uploadvdieo', (req, res) => {
+  //비디오 정보들을 저장한다.
+  const video = new Video(req.body);
+  video.save((err, doc) => {
+    if (err) {
+      return res.json({ success: false, err });
+    }
+    return res.status(200).json({ success: true });
+  });
+});
+```
+
+_VideoUploadPage.js_
+
+```javascript
+setTimeout(() => {}, 3000);
+```
+
+=> 3초뒤 페이지 이동
